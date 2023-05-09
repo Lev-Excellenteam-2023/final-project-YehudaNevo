@@ -28,6 +28,8 @@ class OpenAIExplainer:
         for page, text in self.input_dict.items():
             explanation_prompt = f"Explain the following in simple terms: {text}"
             explanation = self.generate_explanation(explanation_prompt)
+            # Add a newline character after each period
+            explanation = explanation.replace('. ', '.\n')
             self.output_dict[page] = [text, explanation]
 
         return self.output_dict
