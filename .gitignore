@@ -1,6 +1,38 @@
-# .gitignore
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
-*.pytest_cache
-test/files/
+*.py[cod]
+*$py.class
+
+# IDE-specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Test results
+test_results.xml
+nosetests.xml
+xunit.xml
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Environment and virtualenvs
+venv/
+env/
+pip/
+pip-log.txt
+
+# Other
+*.bak
+*.tmp
+*.swp
