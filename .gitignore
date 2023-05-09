@@ -1,13 +1,11 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-
-
-# IDE-specific files
+# .gitignore
 .idea/
-*.iml
-*.ipr
-*.iws
-.idea_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pytest_cache
+.env
+
 
 # Logs and databases
 *.log

@@ -34,7 +34,7 @@ class PptxParser:
 
 
 def main():
-    # Replace with the path to your PowerPoint file
+
     pptx_file_path = "./test/files/presentation_for_tst.pptx"
 
     # Create an instance of PptxParser with the file path
