@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Union
+from typing import Dict
 from pptx import Presentation
 from pptx.shapes.base import BaseShape
 
@@ -32,9 +32,7 @@ class PptxParser:
         return slides_dict
 
 
-
 def main():
-
     pptx_file_path = "./test/files/presentation_for_tst.pptx"
 
     # Create an instance of PptxParser with the file path
@@ -48,6 +46,7 @@ def main():
         print(f"Slide {slide_num}:")
         print(slide_text)
         print()
+
 
 if __name__ == "__main__":
     main()

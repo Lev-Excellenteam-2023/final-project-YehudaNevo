@@ -13,22 +13,12 @@ class OpenAIExplainer:
         self.input_dict = input_dict
         self.output_dict = {}
 
-    def generate_explanation(self, prompt):
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=prompt,
-            max_tokens=100,
-            n=1,
-            stop=None,
-            temperature=0.7,
-        )
-        return response.choices[0].text.strip()
+
 
     def explain(self):
         for page, text in self.input_dict.items():
             explanation_prompt = f"Explain the following in simple terms: {text}"
             explanation = self.generate_explanation(explanation_prompt)
-            # Add a newline character after each period
             explanation = explanation.replace('. ', '.\n')
             self.output_dict[page] = [text, explanation]
 
