@@ -1,12 +1,18 @@
-from pptx_parser import *
-from gpt_explainer import *
+import asyncio
+import time
+from typing import Dict, List, Tuple
+from pptx_parser import PptxParser
+from gpt_explainer import get_explanations_for_dict
 
-def print_nicely(explanations):
-    for page, (content, explanation) in explanations.items():
-        formatted_explanation = explanation.replace('.', '.\n')
-        print(f"Page [{page}]\nContent: {content}\nExplanation:\n{formatted_explanation}\n")
+def print_nicely(explanations: Dict[int, List[str]]) -> None:
+    formatted_explanations = "\n".join(
+        f"Page [{page}]\nContent: {content}\nExplanation:\n{explanation}\n"
+        for page, (content, explanation) in ((page, (content, explanation.replace('.', '.\n'))) for page, (content, explanation) in explanations.items())
+    )
+    print(formatted_explanations)
 
-async def main():
+
+async def main() -> None:
     start_time = time.time()
 
     pptx_file_path = "./test/files/presentation_for_tst.pptx"
@@ -16,10 +22,7 @@ async def main():
     explanations = await get_explanations_for_dict(slides_dict)
     print_nicely(explanations)
 
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print('Time ',elapsed_time)
-
+    print('Time ', time.time() - start_time)
 
 if __name__ == "__main__":
     asyncio.run(main())
