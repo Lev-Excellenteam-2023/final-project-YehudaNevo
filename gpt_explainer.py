@@ -27,7 +27,6 @@ def timer_decorator(func):
 
     return wrapper
 
-
 async def get_explanation(topic: str) -> str:
     loop = asyncio.get_event_loop()
     response = await loop.run_in_executor(None, lambda: openai.ChatCompletion.create(
