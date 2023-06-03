@@ -24,7 +24,7 @@ class PptxParser:
 
 
 def main():
-    pptx_file_path = "./test/files/presentation_for_tst.pptx"
+    pptx_file_path = "../Test/files/presentation_for_tst.pptx"
     pptx_parser = PptxParser(pptx_file_path)
     slides_dict = pptx_parser.parse_presentation()
 

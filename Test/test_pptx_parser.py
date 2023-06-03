@@ -1,5 +1,5 @@
 import unittest
-from pptx_parser import PptxParser
+from Parser.pptx_parser import PptxParser
 
 
 class TestPptxParser(unittest.TestCase):
