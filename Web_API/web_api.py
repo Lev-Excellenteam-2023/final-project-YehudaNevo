@@ -1,9 +1,13 @@
+import asyncio
 from flask import Flask, request
 from flask_restx import Api, Resource, fields
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 import os
+import threading
 import uuid
+
+from Explainer.explainer import PptxExplainService
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='API for PPTX Analysis',
@@ -21,12 +25,15 @@ analysis_model = api.model('Analysis', {
 })
 
 analysis_data = {}
+explainer = PptxExplainService(analysis_data)
+thread = threading.Thread(target=explainer.run)
+thread.start()
 
 
 @api.route('/upload')
 class Upload(Resource):
     @api.expect(upload_parser)
-    @api.response(201, 'File uploaded and processing.')
+    @api.response(201, 'File uploaded and processing. ID = id')
     @api.response(500, 'Failed to upload file.')
     def post(self):
         uploaded_file = upload_parser.parse_args()['file']
@@ -35,12 +42,13 @@ class Upload(Resource):
         try:
             uploaded_file.save(file_path)
             analysis_id = str(uuid.uuid4())
-            analysis_data[analysis_id] = {
-                'id': analysis_id,
-                'pptx': file_path,
-                'result': None,
-                'status': 'processing',
-            }
+            with explainer.lock:
+                analysis_data[analysis_id] = {
+                    'id': analysis_id,
+                    'pptx': file_path,
+                    'result': None,
+                    'status': 'upload',
+                }
             return {"message": "File uploaded and processing. ID = " + analysis_id}, 201
 
         except:
@@ -57,5 +65,6 @@ class Status(Resource):
         api.abort(404, "Analysis {} doesn't exist".format(id))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
+
