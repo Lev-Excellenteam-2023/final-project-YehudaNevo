@@ -30,16 +30,19 @@ thread = threading.Thread(target=explainer.run)
 thread.start()
 
 
-@api.route('/upload')
+@api.route('/upload', methods=['POST'])
 class Upload(Resource):
     @api.expect(upload_parser)
     @api.response(201, 'File uploaded and processing. ID = id')
     @api.response(500, 'Failed to upload file.')
     def post(self):
-        uploaded_file = upload_parser.parse_args()['file']
-        file_path = os.path.join('../Shared/uploads', secure_filename(uploaded_file.filename))
-
         try:
+            uploaded_file = upload_parser.parse_args()['file']
+            print('Received file:', uploaded_file)  # Debug statement
+
+            file_path = os.path.join('../Shared/uploads', secure_filename(uploaded_file.filename))
+            print('File path:', file_path)  # Debug statement
+
             uploaded_file.save(file_path)
             analysis_id = str(uuid.uuid4())
             with explainer.lock:
@@ -50,9 +53,9 @@ class Upload(Resource):
                     'status': 'upload',
                 }
             return {"message": "File uploaded and processing. ID = " + analysis_id}, 201
-
-        except:
-            return {"message": "Failed to upload file."}, 500
+        except Exception as e:  # Catch and print the exception
+            print('Error:', e)
+            return {"message": "Failed to upload file. Error: " + str(e)}, 500
 
 
 @api.route('/status/<string:id>')
@@ -61,7 +64,6 @@ class Status(Resource):
     def get(self, id):
         if id in analysis_data:
             return analysis_data[id]
-
         api.abort(404, "Analysis {} doesn't exist".format(id))
 
 
