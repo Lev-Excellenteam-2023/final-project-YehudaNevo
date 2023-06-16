@@ -3,6 +3,9 @@ import requests
 import time
 import os
 
+import ast
+import json
+
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -54,33 +57,48 @@ def home():
 def upload_file():
     if request.method == 'POST':
         file = request.files['file']
-        file_path = os.path.join('../Shared/uploads', secure_filename(file.filename))  # Save to a directory named 'uploads'
-        # print(file_path)
+        file_path = os.path.join('../Shared/uploads', secure_filename(file.filename))
         file.save(file_path)
 
         try:
             analysis_id = client.upload_pptx(file_path)
             session['analysis_id'] = analysis_id
-            return redirect(url_for('check_status'))  # Redirect to the status page
+            session['file_name'] = file.filename  # Save file name to the session
+            return redirect(url_for('check_status'))
         except Exception as e:
-            return str(e)  # Show the error message
+            return str(e)
 
-    return render_template('upload.html')  # The page to upload PPTX files
+    return render_template('upload.html')
+
+@app.route('/results', methods=['GET'])
+def view_results():
+    result = []
+    result_title = "No Presentation to Show Yet"
+    if 'analysis_id' in session:
+        result_string = client.get_result(session['analysis_id'])
+        if result_string:
+            slides = result_string.split("\n\n")
+            result = [ast.literal_eval(slide.split(":\n")[1]) for slide in slides]
+            result_title = session.get('file_name', result_title)
+    return render_template('results.html', result=result, result_title=result_title)
+
 
 @app.route('/status', methods=['GET'])
 def check_status():
     status_data = "No Analysis in Progress"
     if 'analysis_id' in session:
         status_data = client.check_status(session['analysis_id'])
+        if isinstance(status_data, dict):   # make sure the status_data is a dictionary
+            return render_template('status.html',
+                                    id=status_data.get('id'),
+                                    pptx=status_data.get('pptx').split('/')[-1],
+                                    status=status_data.get('status'))
+    return render_template('status.html', status=status_data)
 
-    return render_template('status.html', status=status_data)  # The status page, showing the status
 
-@app.route('/results', methods=['GET'])
-def view_results():
-    result = "No Results to Display"
-    if 'analysis_id' in session:
-        result = client.get_result(session['analysis_id'])
-    return render_template('results.html', result=result)  # The results page, showing the result
+
+
+
 
 
 if __name__ == "__main__":

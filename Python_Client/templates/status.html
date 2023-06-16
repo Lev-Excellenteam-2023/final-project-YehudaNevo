@@ -11,8 +11,13 @@
             <h1>Status</h1>
         </header>
 
-        <div class="status-info">
-            <p>Status: {{ status }}</p>
+        <div class="status-info card text-dark bg-transparent mb-3">
+            <div class="card-body">
+                <h5 class="card-title">File Details</h5>
+                <p class="card-text">ID: {{ id }}</p>
+                <p class="card-text">File Name: {{ pptx }}</p>
+                <p class="card-text">Status: {{ status }}</p>
+            </div>
         </div>
 
         <nav>
