@@ -12,7 +12,7 @@ from Explainer.explainer import PptxExplainService
 app = Flask(__name__)
 api = Api(app, version='1.0', title='API for PPTX Analysis',
           description='A simple API for analyzing PPTX files')
-
+# todo
 upload_parser = api.parser()
 upload_parser.add_argument('file', location='files',
                            type=FileStorage, required=True)
@@ -24,7 +24,7 @@ analysis_model = api.model('Analysis', {
     'status': fields.String(required=True, description='The status of the analysis'),
 })
 
-analysis_data = {}
+analysis_data = []
 explainer = PptxExplainService(analysis_data)
 thread = threading.Thread(target=explainer.run)
 thread.start()
@@ -38,20 +38,19 @@ class Upload(Resource):
     def post(self):
         try:
             uploaded_file = upload_parser.parse_args()['file']
-            print('Received file:', uploaded_file)  # Debug statement
-
             file_path = os.path.join('../Shared/uploads', secure_filename(uploaded_file.filename))
-            print('File path:', file_path)  # Debug statement
-
             uploaded_file.save(file_path)
             analysis_id = str(uuid.uuid4())
+
+            analysis = {
+                'id': analysis_id,
+                'pptx': file_path,
+                'result': None,
+                'status': 'upload',
+            }
             with explainer.lock:
-                analysis_data[analysis_id] = {
-                    'id': analysis_id,
-                    'pptx': file_path,
-                    'result': None,
-                    'status': 'upload',
-                }
+                analysis_data.append(analysis)
+
             return {"message": "File uploaded and processing. ID = " + analysis_id}, 201
         except Exception as e:  # Catch and print the exception
             print('Error:', e)
@@ -62,8 +61,9 @@ class Upload(Resource):
 class Status(Resource):
     @api.marshal_with(analysis_model)
     def get(self, id):
-        if id in analysis_data:
-            return analysis_data[id]
+        analysis = explainer.get_analysis(id)
+        if analysis is not None:
+            return analysis
         api.abort(404, "Analysis {} doesn't exist".format(id))
 
 

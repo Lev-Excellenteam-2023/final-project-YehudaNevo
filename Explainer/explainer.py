@@ -5,7 +5,6 @@ import pathlib
 from Parser.pptx_parser import PptxParser
 from Explainer.gpt_explainer import get_explanations_for_dict
 
-
 class PptxExplainService:
     def __init__(self, analysis_data):
         self.shared_path = '../Shared/uploads'
@@ -13,6 +12,11 @@ class PptxExplainService:
         self.analysis_data = analysis_data
         self.lock = threading.Lock()  # this resource it's shared between two proc ( api line 29,30 )
 
+    def get_analysis(self, analysis_id):
+        for analysis in self.analysis_data:
+            if analysis['id'] == analysis_id:
+                return analysis
+        return None
     async def explain_pptx_file(self, analysis_id, pptx_file):
         pptx_parser = PptxParser(pptx_file)
         slides_dict = pptx_parser.parse_presentation()
@@ -26,17 +30,18 @@ class PptxExplainService:
         with open(os.path.join(self.output_path, output_filename), 'w') as f:
             f.write(explained_text)
 
-        self.analysis_data[analysis_id]['result'] = explained_text
-        self.analysis_data[analysis_id]['status'] = 'complete'
+        analysis = self.get_analysis(analysis_id)
+        analysis['result'] = explained_text
+        analysis['status'] = 'complete'
 
     async def check_new_files(self):
         while True:
             with self.lock:
-                for analysis_id, data in list(self.analysis_data.items()):
-                    if data['status'] == 'upload':
-                        self.analysis_data[analysis_id]['status'] = 'processing'
-                        await self.explain_pptx_file(analysis_id, data['pptx'])
-            await asyncio.sleep(2)
+                for analysis in self.analysis_data:
+                    if analysis['status'] == 'upload':
+                        analysis['status'] = 'processing'
+                        await self.explain_pptx_file(analysis['id'], analysis['pptx'])
+            await asyncio.sleep(3)
 
     def run(self):
         asyncio.run(self.check_new_files())

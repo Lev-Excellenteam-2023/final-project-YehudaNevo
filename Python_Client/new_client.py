@@ -36,7 +36,6 @@ class PptxAnalysisClient:
         status_data = self.check_status(analysis_id)
         if status_data is None:
             raise Exception(f"Analysis {analysis_id} doesn't exist")
-        # todo -  break after a min
         while status_data['status'] != 'complete':
             time.sleep(2)
             status_data = self.check_status(analysis_id)
@@ -54,48 +53,52 @@ def home():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        file = request.files['file']
-        file_path = os.path.join('../Shared/uploads', secure_filename(file.filename))
-        file.save(file_path)
-
-        try:
-            analysis_id = client.upload_pptx(file_path)
-            session['analysis_id'] = analysis_id
-            session['file_name'] = file.filename  # Save file name to the session
-            return redirect(url_for('check_status'))
-        except Exception as e:
-            return str(e)
+        files = request.files.getlist('file')  # Get list of files
+        analysis_ids = session.get('analysis_ids', [])
+        file_names = session.get('file_names', [])
+        for file in files:
+            file_path = os.path.join('../Shared/uploads', secure_filename(file.filename))
+            file.save(file_path)
+            try:
+                analysis_id = client.upload_pptx(file_path)
+                analysis_ids.append(analysis_id)
+                file_names.append(file.filename)
+            except Exception as e:
+                return str(e)
+        session['analysis_ids'] = analysis_ids
+        session['file_names'] = file_names
+        return redirect(url_for('check_status'))
 
     return render_template('upload.html')
 
+
 @app.route('/results', methods=['GET'])
 def view_results():
-    result = []
-    result_title = "No Presentation to Show Yet"
-    if 'analysis_id' in session:
-        result_string = client.get_result(session['analysis_id'])
-        if result_string:
-            slides = result_string.split("\n\n")
-            result = [ast.literal_eval(slide.split(":\n")[1]) for slide in slides]
-            result_title = session.get('file_name', result_title)
-    return render_template('results.html', result=result, result_title=result_title)
+    results = []
+    if 'analysis_ids' in session and 'file_names' in session:
+        for analysis_id, file_name in zip(session['analysis_ids'], session['file_names']):
+            result_string = client.get_result(analysis_id)
+            if result_string:
+                slides = result_string.split("\n\n")
+                result = [ast.literal_eval(slide.split(":\n")[1]) for slide in slides]
+                results.append({'file_name': file_name, 'result': result})
+    return render_template('results.html', results=results)
 
 
 @app.route('/status', methods=['GET'])
 def check_status():
-    status_data = "No Analysis in Progress"
-    if 'analysis_id' in session:
-        status_data = client.check_status(session['analysis_id'])
-        if isinstance(status_data, dict):   # make sure the status_data is a dictionary
-            return render_template('status.html',
-                                    id=status_data.get('id'),
-                                    pptx=status_data.get('pptx').split('/')[-1],
-                                    status=status_data.get('status'))
-    return render_template('status.html', status=status_data)
-
-
-
+    status_list = []
+    if 'analysis_ids' in session and 'file_names' in session:
+        for analysis_id, file_name in zip(session['analysis_ids'], session['file_names']):
+            status_data = client.check_status(analysis_id)
+            if isinstance(status_data, dict):
+                status_list.append({
+                    'id': status_data.get('id'),
+                    'pptx': file_name,
+                    'status': status_data.get('status')
+                })
+    return render_template('status.html', status_list=status_list)
 
 
 if __name__ == "__main__":
-    app.run(debug=True,port=5001)
+    app.run(debug=True, port=5002)
