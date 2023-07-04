@@ -67,6 +67,17 @@ class Status(Resource):
         api.abort(404, "Analysis {} doesn't exist".format(id))
 
 
+@api.route('/result/<string:id>')
+class Result(Resource):
+    @api.marshal_with(analysis_model)
+    def get(self, id):
+        analysis = explainer.get_analysis(id)
+        if analysis is not None:
+            if analysis['status'] != 'complete':
+                return {"message": "The analysis is not yet complete."}, 202
+            return analysis
+        api.abort(404, "Analysis {} doesn't exist".format(id))
+
+
 if __name__ == "__main__":
     app.run(debug=True)
-
