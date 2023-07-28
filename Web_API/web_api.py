@@ -1,83 +1,75 @@
-import asyncio
-from flask import Flask, request
-from flask_restx import Api, Resource, fields
-from werkzeug.utils import secure_filename
-from werkzeug.datastructures import FileStorage
 import os
-import threading
 import uuid
 
-from Explainer.explainer import PptxExplainService
+from flask import Flask, request, jsonify
+from flask_swagger_ui import get_swaggerui_blueprint
+from werkzeug.utils import secure_filename
+import datetime
+from database import User, Upload, session
 
 app = Flask(__name__)
-api = Api(app, version='1.0', title='API for PPTX Analysis',
-          description='A simple API for analyzing PPTX files')
-# todo
-upload_parser = api.parser()
-upload_parser.add_argument('file', location='files',
-                           type=FileStorage, required=True)
 
-analysis_model = api.model('Analysis', {
-    'id': fields.String(required=True, description='The analysis id'),
-    'pptx': fields.String(required=True, description='The path to the PPTX file'),
-    'result': fields.String(required=False, description='The result of the analysis'),
-    'status': fields.String(required=True, description='The status of the analysis'),
-})
-
-analysis_data = []
-explainer = PptxExplainService(analysis_data)
-thread = threading.Thread(target=explainer.run)
-thread.start()
+# Swagger setup
+SWAGGER_URL = '/api/docs'
+API_URL = '/static/swagger.json'
+swaggerui_blueprint = get_swaggerui_blueprint(SWAGGER_URL, API_URL)
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 
-@api.route('/upload', methods=['POST'])
-class Upload(Resource):
-    @api.expect(upload_parser)
-    @api.response(201, 'File uploaded and processing. ID = id')
-    @api.response(500, 'Failed to upload file.')
-    def post(self):
-        try:
-            uploaded_file = upload_parser.parse_args()['file']
-            file_path = os.path.join('../Shared/uploads', secure_filename(uploaded_file.filename))
-            uploaded_file.save(file_path)
-            analysis_id = str(uuid.uuid4())
-
-            analysis = {
-                'id': analysis_id,
-                'pptx': file_path,
-                'result': None,
-                'status': 'upload',
-            }
-            with explainer.lock:
-                analysis_data.append(analysis)
-
-            return {"message": "File uploaded and processing. ID = " + analysis_id}, 201
-        except Exception as e:  # Catch and print the exception
-            print('Error:', e)
-            return {"message": "Failed to upload file. Error: " + str(e)}, 500
+@app.route('/')
+def home():
+    return '''
+    <h1>Welcome to the file uploader!</h1>
+    <h2>Add a new user or Upload a file:</h2>
+    <a href="/create_user">Create User</a><br>
+    <a href="/upload_file">Upload File</a>
+    '''
 
 
-@api.route('/status/<string:id>')
-class Status(Resource):
-    @api.marshal_with(analysis_model)
-    def get(self, id):
-        analysis = explainer.get_analysis(id)
-        if analysis is not None:
-            return analysis
-        api.abort(404, "Analysis {} doesn't exist".format(id))
+@app.route('/create_user', methods=['GET', 'POST'])
+def create_user():
+    if request.method == 'POST':
+        # Create a new User and add them to the database
+        new_user = User(email=request.form['email'])
+        session.add(new_user)
+        session.commit()
+        return f'New user added successfully with ID {new_user.id}!'
+    return
 
 
-@api.route('/result/<string:id>')
-class Result(Resource):
-    @api.marshal_with(analysis_model)
-    def get(self, id):
-        analysis = explainer.get_analysis(id)
-        if analysis is not None:
-            if analysis['status'] != 'complete':
-                return {"message": "The analysis is not yet complete."}, 202
-            return analysis
-        api.abort(404, "Analysis {} doesn't exist".format(id))
+@app.route('/upload_file', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # Check if the user exists
+        user_id = request.form['id']
+        user = session.query(User).get(user_id)
+        if user is None:
+            return 'No user found with this ID. Please create a user first.'
+
+        # Handle file upload
+        file = request.files['file']
+        filename = secure_filename(file.filename)
+        file_path = os.path.join('../Shared/uploads', filename)
+        if not os.path.exists('../Shared/uploads'):
+            os.makedirs('../Shared/uploads')
+        file.save(file_path)
+
+        # Create a new Upload instance
+        upload = Upload(uid=str(uuid.uuid4()),
+                        filename=filename,
+                        upload_time=datetime.datetime.now(),
+                        user_id=user_id)
+        session.add(upload)
+        session.commit()
+
+        return jsonify({'message': 'File uploaded successfully!',
+                        'user_id': user_id,
+                        'filename': filename,
+                        'upload_id': upload.id,
+                        'upload_time': upload.upload_time.strftime("%Y-%m-%d, %H:%M:%S")}), 200
+
+    return
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)

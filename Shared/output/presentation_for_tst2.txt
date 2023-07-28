@@ -1,5 +1,0 @@
-Slide 1:
-['PE format structure and explanation', "PE format structure is the file format used for executable files and DLLs in Windows. It consists of a header section and various data sections that contain information about the executable's code and resources. This structure allows the operating system to properly load and execute the program."]
-
-Slide 2:
-['IDA -  tool for reverse exe file', 'IDA is a powerful reverse engineering tool used for analyzing binary code. It supports a wide range of architectures and file types, making it a popular choice for both malware analysts and software developers. With its user-friendly interface and robust analysis features, IDA is an essential tool for anyone working with executable files.']

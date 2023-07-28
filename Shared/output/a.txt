@@ -1,5 +1,0 @@
-Slide 1:
-['PE format structure and explanation', 'The Portable Executable (PE) format is a file format used for executable files, object code, and DLLs in the Windows operating system. It provides a structure for organizing and storing various sections of an executable file, such as code, data, and resources. The PE format includes a header that contains important information about the file, such as entry point, file size, and section layout, making it easier for the operating system to load and execute the file.']
-
-Slide 2:
-['IDA -  tool for reverse exe file', 'IDA (Interactive Disassembler) is a powerful tool used for reverse engineering executable files. It allows users to analyze binary code, understand its structure, and identify vulnerabilities or malicious code. With its advanced features and intuitive interface, IDA is widely used by security researchers and hackers for analyzing malware, finding software flaws, and developing exploits.']
